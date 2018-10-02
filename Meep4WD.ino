@@ -7,6 +7,7 @@ SoftwareSerial XBee(2, 3); // Arduino RX, TX (XBee Dout, Din)
 #include "utility/Adafruit_MS_PWMServoDriver.h"
 #include <Servo.h> 
 
+#define DEBUG_SERIAL
 
 #define headlight_pin_left 12
 #define headlight_pin_right 13
@@ -27,6 +28,19 @@ Servo servo1;
 int currentSpeed = 100;
 bool drivingForward;
 
+// Simple version of debug print only takes strings.  Use sprintf if you
+// want to embed paramenters.  Currently sending newline to determine when the string
+// is done....no newline needed in the string itself.
+void debug_print(char *string)
+{
+
+  #ifdef DEBUG_SERIAL
+  Serial.println(string);
+  #endif
+  
+  XBee.println(string);
+}
+
 void setup() {
   Serial.begin(9600); // set up Serial library at 9600 bps
   Serial.println("Adafruit Motorshield v2 - DC Motor test!");
@@ -42,13 +56,19 @@ void setup() {
   pinMode(headlight_pin_right,OUTPUT);  
   stopDriving();
 
-
+  debug_print("Setup finished");
 }
 
 void loop() {
+ char debug_string[40];
+ 
  if (XBee.available())
      {
      char c = XBee.read();
+
+     sprintf(debug_string, "RX char %c", c);
+     debug_print(debug_string);
+     
         if (c == '1')
           driveForwardSlightLeft();
          else if (c == '2'){
@@ -102,6 +122,8 @@ void stopDriving(){
   frontMotor->run(RELEASE);
   backLeftMotor->run(RELEASE);
   backRightMotor->run(RELEASE);
+
+  debug_print("Stop Driving");
 }
 
 void driveForward(){
@@ -111,6 +133,8 @@ void driveForward(){
   frontMotor->run(FORWARD);
   backLeftMotor->run(FORWARD);
   backRightMotor->run(FORWARD);
+
+  debug_print("Drive Forward");
 }
 
 void driveBack(){
@@ -120,6 +144,8 @@ void driveBack(){
   frontMotor->run(BACKWARD);
   backLeftMotor->run(BACKWARD);
   backRightMotor->run(BACKWARD);
+
+  debug_print("Drive Back");
 }
 
 void driveLeft(){
@@ -132,6 +158,8 @@ void driveLeft(){
   delay(50);
   headlightsOff();
   delay(50);
+
+  debug_print("Drive Left");
 }
 
 void driveRight(){
@@ -144,6 +172,9 @@ void driveRight(){
   delay(50);
   headlightsOff();
   delay(50);
+
+  debug_print("Drive Right");
+  
 }
 
 void driveLeftBack(){
@@ -156,6 +187,8 @@ void driveLeftBack(){
   delay(50);
   headlightsOff();
   delay(50);
+
+  debug_print("Drive Left Back");
 }
 
 void driveRightBack(){
@@ -168,7 +201,10 @@ void driveRightBack(){
   delay(50);
   headlightsOff();
   delay(50);
+
+  debug_print("Drive Right Back");
 }
+
 void driveForwardSlightLeft(){
   drivingForward = true;
   headlightsLeftBlinker();
@@ -176,6 +212,8 @@ void driveForwardSlightLeft(){
   frontMotor->run(FORWARD);
   backLeftMotor->run(FORWARD);
   backRightMotor->run(FORWARD);
+
+  debug_print("Drive Forward Slight Left");
 }
 
 void driveForwardSlightRight(){
@@ -185,6 +223,8 @@ void driveForwardSlightRight(){
   frontMotor->run(FORWARD);
   backLeftMotor->run(FORWARD);
   backRightMotor->run(FORWARD);
+
+  debug_print("Drive Forward Slight Right");
 }
 
 void driveBackSlightRight(){
@@ -194,6 +234,9 @@ void driveBackSlightRight(){
   frontMotor->run(BACKWARD);
   backLeftMotor->run(BACKWARD);
   backRightMotor->run(BACKWARD);
+
+  debug_print("Drive Back Slight Right");
+  
 }
 
 
@@ -204,22 +247,32 @@ void driveBackSlightLeft(){
   frontMotor->run(BACKWARD);
   backLeftMotor->run(BACKWARD);
   backRightMotor->run(BACKWARD);
+
+  debug_print("Drive Back Slight Left");
 }
 
 
 void regSpeed(){
   currentSpeed = 100;
   setCurrentSpeed();
+
+  debug_print("Reg speed");
 }
 
 void turboSpeed(){
   currentSpeed = 255;
   setCurrentSpeed();
+
+  debug_print("Turbo Speed");
+  
 }
 
 void slowSpeed(){
   currentSpeed = 50;
   setCurrentSpeed();
+
+  debug_print("Slow Speed");
+  
 }
 
 
@@ -249,8 +302,3 @@ void headlightsRightBlinker(){
    digitalWrite(headlight_pin_left,LOW);
    digitalWrite(headlight_pin_right,HIGH); 
 }
-
-
-
-
-
