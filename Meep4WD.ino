@@ -102,6 +102,9 @@ void stopDriving(){
   frontMotor->run(RELEASE);
   backLeftMotor->run(RELEASE);
   backRightMotor->run(RELEASE);
+
+  // send ack.  Magic number for now.
+  XBee.print("A5");
 }
 
 void driveForward(){
@@ -111,6 +114,10 @@ void driveForward(){
   frontMotor->run(FORWARD);
   backLeftMotor->run(FORWARD);
   backRightMotor->run(FORWARD);
+
+  // send ack.  Magic number for now.
+  XBee.print("A2");
+
 }
 
 void driveBack(){
@@ -120,6 +127,10 @@ void driveBack(){
   frontMotor->run(BACKWARD);
   backLeftMotor->run(BACKWARD);
   backRightMotor->run(BACKWARD);
+
+  // send ack.  Magic number for now.
+  XBee.print("A8");
+
 }
 
 void driveLeft(){
@@ -132,6 +143,10 @@ void driveLeft(){
   delay(50);
   headlightsOff();
   delay(50);
+
+  // send ack.  Magic number for now.
+  XBee.print("A4");
+
 }
 
 void driveRight(){
@@ -144,6 +159,10 @@ void driveRight(){
   delay(50);
   headlightsOff();
   delay(50);
+
+  // send ack.  Magic number for now.
+  XBee.print("A6");
+
 }
 
 void driveLeftBack(){
@@ -156,6 +175,10 @@ void driveLeftBack(){
   delay(50);
   headlightsOff();
   delay(50);
+
+  // send ack.  Magic number for now.
+  XBee.print("A4");
+
 }
 
 void driveRightBack(){
@@ -168,7 +191,12 @@ void driveRightBack(){
   delay(50);
   headlightsOff();
   delay(50);
+
+  // send ack.  Magic number for now.
+  XBee.print("A6");
+
 }
+
 void driveForwardSlightLeft(){
   drivingForward = true;
   headlightsLeftBlinker();
@@ -176,6 +204,10 @@ void driveForwardSlightLeft(){
   frontMotor->run(FORWARD);
   backLeftMotor->run(FORWARD);
   backRightMotor->run(FORWARD);
+
+  // send ack.  Magic number for now.
+  XBee.print("A1");
+
 }
 
 void driveForwardSlightRight(){
@@ -185,6 +217,10 @@ void driveForwardSlightRight(){
   frontMotor->run(FORWARD);
   backLeftMotor->run(FORWARD);
   backRightMotor->run(FORWARD);
+
+  // send ack.  Magic number for now.
+  XBee.print("A3");
+
 }
 
 void driveBackSlightRight(){
@@ -194,6 +230,10 @@ void driveBackSlightRight(){
   frontMotor->run(BACKWARD);
   backLeftMotor->run(BACKWARD);
   backRightMotor->run(BACKWARD);
+
+  // send ack.  Magic number for now.
+  XBee.print("A9");
+
 }
 
 
@@ -204,6 +244,10 @@ void driveBackSlightLeft(){
   frontMotor->run(BACKWARD);
   backLeftMotor->run(BACKWARD);
   backRightMotor->run(BACKWARD);
+
+  // send ack.  Magic number for now.
+  XBee.print("A7");
+
 }
 
 
@@ -249,8 +293,3 @@ void headlightsRightBlinker(){
    digitalWrite(headlight_pin_left,LOW);
    digitalWrite(headlight_pin_right,HIGH); 
 }
-
-
-
-
-
