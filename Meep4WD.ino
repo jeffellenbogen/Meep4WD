@@ -1,4 +1,6 @@
 //XBee setup
+//Adding feedback to the Joystick LCD
+
 #include <SoftwareSerial.h>
 SoftwareSerial XBee(2, 3); // Arduino RX, TX (XBee Dout, Din)
 
@@ -50,49 +52,101 @@ void loop() {
      {
      char c = XBee.read();
         if (c == '1')
+        {
           driveForwardSlightLeft();
-         else if (c == '2'){
-            if (drivingForward)
-              driveForward();
-            else {
-              stopDriving();
-              delay(250);
-              driveForward();
-            }
+          XBee.print('1');
+        }                
+        else if (c == '2')
+        {
+          if (drivingForward)
+          {
+             driveForward();
+             XBee.print('2');
+          }
+          else 
+          {
+             stopDriving();
+             delay(250);
+             driveForward();
+             XBee.print('2');
            }
+         }
          else if (c == '3')
-            driveForwardSlightRight();           
+         {
+            driveForwardSlightRight(); 
+            XBee.print('3');  
+         }        
          else if (c == '4')
+         {
             if (drivingForward)
+            {
               driveLeft();
+              XBee.print('4');
+            }
             else
-              driveLeftBack();            
+            {
+              driveLeftBack(); 
+              XBee.print('4');  // This might need to be fixed to deal with forward vs back left commands
+            }     
+         }      
          else if (c == '5')
-            stopDriving();        
+         {
+            stopDriving(); 
+            XBee.print('5');    
+         }   
          else if (c == '6')
+         {
             if (drivingForward)
+            {
               driveRight();
+              XBee.print('6');
+            }
             else
-              driveRightBack();          
+            {
+              driveRightBack(); 
+              XBee.print('6');  // This might need to be fixed to deal with forward vs back right commands
+            } 
+         }        
          else if (c == '7')
+         {
             driveBackSlightLeft();
-         else if (c == '8'){
+            XBee.print('7');
+         }
+         else if (c == '8')
+         {
             if (drivingForward==false)
+            {
               driveBack();
-            else {
+              XBee.print('8');
+            }
+            else 
+            {
               stopDriving();
               delay(250);
               driveBack();
+              XBee.print('8');
              }
-            }
-         else if (c == '9')
-            driveBackSlightRight();       
+          }
+          else if (c == '9')
+          {
+            driveBackSlightRight();
+            XBee.print('9');  
+          }     
          else if (c == 'R')
+         {
             regSpeed();
+            XBee.print('R');
+         }
          else if (c == 'T')
+         {
             turboSpeed();
+            XBee.print('T');
+         }
          else if (c == 'S')
-            slowSpeed();                    
+         {
+            slowSpeed();
+            XBee.print('S');                    
+         }
      }
 }
 
