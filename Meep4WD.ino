@@ -29,6 +29,9 @@ Servo servo1;
 int currentSpeed = 100;
 bool drivingForward;
 
+/**************************************************************************************
+ * Function:  setup
+ */
 void setup() {
   Serial.begin(9600); // set up Serial library at 9600 bps
   Serial.println("Adafruit Motorshield v2 - DC Motor test!");
@@ -43,11 +46,13 @@ void setup() {
   pinMode(headlight_pin_left,OUTPUT);
   pinMode(headlight_pin_right,OUTPUT);  
   stopDriving();
+}  //  end of setup
 
-
-}
-
-void loop() {
+/**************************************************************************************
+ * Function:  loop
+ */
+void loop() 
+{
  if (XBee.available())
      {
      char c = XBee.read();
@@ -148,35 +153,51 @@ void loop() {
             XBee.print('S');                    
          }
      }
-}
+}  // end of loop
 
-void stopDriving(){
+/**************************************************************************************
+ * Function:  stopDriving
+ */
+void stopDriving()
+{
   headlightsOff();
   servo1.write(heading_baseline);
   frontMotor->run(RELEASE);
   backLeftMotor->run(RELEASE);
   backRightMotor->run(RELEASE);
-}
+}  //  end of stopDriving
 
-void driveForward(){
+/**************************************************************************************
+ * Function:  driveForward
+ */
+void driveForward()
+{
   drivingForward = true;
   headlightsOn();
   servo1.write(heading_baseline);
   frontMotor->run(FORWARD);
   backLeftMotor->run(FORWARD);
   backRightMotor->run(FORWARD);
-}
+} // end of driveForward
 
-void driveBack(){
+/**************************************************************************************
+ * Function:  driveBack
+ */
+void driveBack()
+{
   drivingForward = false;
   headlightsOn();
   servo1.write(heading_baseline);
   frontMotor->run(BACKWARD);
   backLeftMotor->run(BACKWARD);
   backRightMotor->run(BACKWARD);
-}
+}  // end of driveBack
 
-void driveLeft(){
+/**************************************************************************************
+ * Function:  driveLeft
+ */
+void driveLeft()
+{
   drivingForward = true;
   headlightsLeftBlinker();
   servo1.write(heading_baseline-large_turn_amt);
@@ -186,9 +207,13 @@ void driveLeft(){
   delay(50);
   headlightsOff();
   delay(50);
-}
+}  // end of driveLeft
 
-void driveRight(){
+/**************************************************************************************
+ * Function:  driveRight
+ */
+void driveRight()
+{
   drivingForward = true;
   headlightsRightBlinker();
   servo1.write(heading_baseline+large_turn_amt);
@@ -198,9 +223,13 @@ void driveRight(){
   delay(50);
   headlightsOff();
   delay(50);
-}
+}  // end of driveRight
 
-void driveLeftBack(){
+/**************************************************************************************
+ * Function:  driveLeftBack
+ */
+void driveLeftBack()
+{
   drivingForward = false;
   headlightsLeftBlinker();
   servo1.write(heading_baseline-large_turn_amt);
@@ -210,9 +239,13 @@ void driveLeftBack(){
   delay(50);
   headlightsOff();
   delay(50);
-}
+}  // end of driveLeftBack
 
-void driveRightBack(){
+/**************************************************************************************
+ * Function:  driveRightBack
+ */
+void driveRightBack()
+{
   drivingForward = false;
   headlightsRightBlinker();
   servo1.write(heading_baseline+large_turn_amt);
@@ -222,89 +255,130 @@ void driveRightBack(){
   delay(50);
   headlightsOff();
   delay(50);
-}
-void driveForwardSlightLeft(){
+}  // end of driveRightBack
+
+/**************************************************************************************
+ * Function:  driveForwardSlightLeft
+ */
+void driveForwardSlightLeft()
+{
   drivingForward = true;
   headlightsLeftBlinker();
   servo1.write(heading_baseline-small_turn_amt);
   frontMotor->run(FORWARD);
   backLeftMotor->run(FORWARD);
   backRightMotor->run(FORWARD);
-}
+}  // end of driveForwardSlightLeft
 
-void driveForwardSlightRight(){
+/**************************************************************************************
+ * Function:  driveForwardSlightRight
+ */
+void driveForwardSlightRight()
+{
   drivingForward = true;
   headlightsRightBlinker();
   servo1.write(heading_baseline+small_turn_amt);
   frontMotor->run(FORWARD);
   backLeftMotor->run(FORWARD);
   backRightMotor->run(FORWARD);
-}
+}  // end of driveForwardSlightRight
 
-void driveBackSlightRight(){
+/**************************************************************************************
+ * Function:  driveBackSlightRight
+ */
+void driveBackSlightRight()
+{
   drivingForward = false;
   headlightsRightBlinker();
   servo1.write(heading_baseline+small_turn_amt);
   frontMotor->run(BACKWARD);
   backLeftMotor->run(BACKWARD);
   backRightMotor->run(BACKWARD);
-}
+}  // end of driveBackSlightRight
 
-
-void driveBackSlightLeft(){
+/**************************************************************************************
+ * Function:  driveBackSlightLeft
+ */
+void driveBackSlightLeft()
+{
   drivingForward = false;
   headlightsLeftBlinker();
   servo1.write(heading_baseline-small_turn_amt);
   frontMotor->run(BACKWARD);
   backLeftMotor->run(BACKWARD);
   backRightMotor->run(BACKWARD);
-}
+}  // end of driveBackSlightLeft
 
-
-void regSpeed(){
+/**************************************************************************************
+ * Function:  regSpeed
+ */
+void regSpeed()
+{
   currentSpeed = 100;
   setCurrentSpeed();
 }
 
-void turboSpeed(){
+/**************************************************************************************
+ * Function:  turboSpeed
+ */
+void turboSpeed()
+{
   currentSpeed = 255;
   setCurrentSpeed();
 }
 
-void slowSpeed(){
+/**************************************************************************************
+ * Function:  slowSpeed
+ */
+void slowSpeed()
+{
   currentSpeed = 50;
   setCurrentSpeed();
 }
 
-
-void setCurrentSpeed(){
+/**************************************************************************************
+ * Function:  setCurrentSpeed
+ */
+void setCurrentSpeed()
+{
   frontMotor->setSpeed(currentSpeed);
   backLeftMotor->setSpeed(currentSpeed);
   backRightMotor->setSpeed(currentSpeed);
 
 }
 
-void headlightsOn(){
+/**************************************************************************************
+ * Function:  headlightsOn
+ */
+void headlightsOn()
+{
   digitalWrite(headlight_pin_left,HIGH);
   digitalWrite(headlight_pin_right,HIGH);
 }
 
-void headlightsOff(){
+/**************************************************************************************
+ * Function:  headlightsOff
+ */
+void headlightsOff()
+{
   digitalWrite(headlight_pin_left,LOW);
   digitalWrite(headlight_pin_right,LOW); 
 }
 
-void headlightsLeftBlinker(){
+/**************************************************************************************
+ * Function:  headlightsLeftBlinker
+ */
+void headlightsLeftBlinker()
+{
    digitalWrite(headlight_pin_left,HIGH);
    digitalWrite(headlight_pin_right,LOW); 
 }
 
-void headlightsRightBlinker(){
+/**************************************************************************************
+ * Function:  headlightsRightBlinker
+ */
+void headlightsRightBlinker()
+{
    digitalWrite(headlight_pin_left,LOW);
    digitalWrite(headlight_pin_right,HIGH); 
 }
-
-
-
-
-
