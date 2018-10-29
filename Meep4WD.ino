@@ -24,6 +24,58 @@ Adafruit_DCMotor *frontMotor = AFMS.getMotor(1);
 Adafruit_DCMotor *backLeftMotor = AFMS.getMotor(3);
 Adafruit_DCMotor *backRightMotor = AFMS.getMotor(4);
 
+// State machine inputs.
+typedef enum
+{
+  INPUT_INVALID,        
+  INPUT_FWD_LEFT,       // '1'
+  INPUT_FWD,            // '2'
+  INPUT_FWD_RIGHT,      // '3'
+  INPUT_LEFT,           // '4'
+  INPUT_STOP,           // '5'
+  INPUT_RIGHT,          // '6'
+  INPUT_BACK_LEFT,      // '7'
+  INPUT_BACK,           // '8'
+  INPUT_BACK_RIGHT,     // '9'
+  INPUT_SLOWMO_SPEED,   // 'S'
+  INPUT_REGULAR_SPEED,  // 'R'
+  INPUT_TURBO_SPEED     // 'T'
+} inputType;
+
+// Forward function declarations needed for the function table below.
+void invalidCommand();
+void driveForwardSlightLeft();
+void processForward();
+void driveForwardSlightRight();
+void processLeft();
+void stopDriving();
+void processRight();
+void driveBackSlightLeft();
+void processBack();
+void driveBackSlightRight();
+void slowSpeed();
+void regSpeed();
+void turboSpeed();
+
+// The state machine table itself.  Functions map, in order, to the 
+// input definitions above.
+typedef void (*functionType)();
+functionType functionTable[]  =
+{
+  invalidCommand,             // INPUT_INVALID
+  driveForwardSlightLeft,     // INPUT_FWD_LEFT
+  processForward,             // INPUT_FWD
+  driveForwardSlightRight,    // INPUT_FWD_RIGHT
+  processLeft,                // INPUT_LEFT
+  stopDriving,                // INPUT_STOP
+  processRight,               // INPUT_RIGHT
+  driveBackSlightLeft,        // INPUT_BACK_LEFT
+  processBack,                // INPUT_BACK
+  driveBackSlightRight,       // INPUT_BACK_RIGHT
+  slowSpeed,                  // INPUT_SLOWMO_SPEED
+  regSpeed,                   // INPUT_REGULAR_SPEED
+  turboSpeed                  // INPUT_TURBO_SPEED
+};
 
 Servo servo1;
 int currentSpeed = 100;
@@ -120,60 +172,61 @@ void processBack()
       }
 }
 
+void invalidCommand()
+{
+  /* do nothing */
+}
+
+/**************************************************************************************
+ * Function:  mapCommandToInput
+ */
+inputType mapCommandToInput( char command )
+{
+  inputType retVal;
+  
+  // number characters are easy to map...do a char to int converstion.
+  if ((command >= '1') && (command <= '9'))
+  {
+    retVal = (inputType) (command - '0');
+  }
+  else
+  {
+    // Three other inputs we need to process are the speed inputs
+    switch (command)
+    {
+      case 'S':
+        retVal = INPUT_SLOWMO_SPEED;
+      break;
+
+      case 'R':
+        retVal = INPUT_REGULAR_SPEED;
+      break;
+
+      case 'T':
+        retVal = INPUT_TURBO_SPEED;
+      break;
+
+      default:
+        Serial.print("Invalid command received: ");
+        Serial.println(command);
+        retVal = INPUT_INVALID;
+    }
+  }
+
+  return retVal;
+}
+
 /**************************************************************************************
  * Function:  processCommand
  */
 void processCommand(char c)
 {
-  if (c == '1')
-  {
-     driveForwardSlightLeft();
-  }                
-  else if (c == '2')
-  {
-     processForward();
-  }
-  else if (c == '3')
-  {
-     driveForwardSlightRight(); 
-  }        
-  else if (c == '4')
-  {
-     processLeft();
-  }      
-  else if (c == '5')
-  {
-     stopDriving(); 
-  }   
-  else if (c == '6')
-  {
-     processRight();
-  }        
-  else if (c == '7')
-  {
-     driveBackSlightLeft();
-  }
-  else if (c == '8')
-  {
-     processBack();
-  }
-  else if (c == '9')
-  {
-     driveBackSlightRight();
-  }     
-  else if (c == 'R')
-  {
-     regSpeed();
-  }
-  else if (c == 'T')
-  {
-     turboSpeed();
-  }
-  else if (c == 'S')
-  {
-     slowSpeed();
-  }
+  inputType input;
 
+  input = mapCommandToInput(c);
+  
+  functionTable[input]();
+  
   // Ack the command
   XBee.print(c);
 }
