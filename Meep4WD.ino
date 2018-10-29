@@ -57,14 +57,12 @@ void processForward()
      if (drivingForward)
      {
         driveForward();
-        XBee.print('2');
      }
      else 
      {
         stopDriving();
         delay(250);
         driveForward();
-        XBee.print('2');
      }
   
 }
@@ -78,12 +76,10 @@ void processLeft()
        if (drivingForward)
       {
         driveLeft();
-        XBee.print('4');
       }
       else
       {
          driveLeftBack(); 
-         XBee.print('4');  // This might need to be fixed to deal with forward vs back left commands
       }     
 
 }
@@ -98,12 +94,10 @@ void processRight()
       if (drivingForward)
       {
          driveRight();
-         XBee.print('6');
       }
       else
       {
          driveRightBack(); 
-         XBee.print('6');  // This might need to be fixed to deal with forward vs back right commands
       } 
 
 }
@@ -117,14 +111,12 @@ void processBack()
       if (drivingForward==false)
       {
          driveBack();
-         XBee.print('8');
       }
       else 
       {
          stopDriving();
          delay(250);
          driveBack();
-         XBee.print('8');
       }
 }
 
@@ -136,7 +128,6 @@ void processCommand(char c)
   if (c == '1')
   {
      driveForwardSlightLeft();
-     XBee.print('1');
   }                
   else if (c == '2')
   {
@@ -145,7 +136,6 @@ void processCommand(char c)
   else if (c == '3')
   {
      driveForwardSlightRight(); 
-     XBee.print('3');  
   }        
   else if (c == '4')
   {
@@ -154,7 +144,6 @@ void processCommand(char c)
   else if (c == '5')
   {
      stopDriving(); 
-     XBee.print('5');    
   }   
   else if (c == '6')
   {
@@ -163,7 +152,6 @@ void processCommand(char c)
   else if (c == '7')
   {
      driveBackSlightLeft();
-     XBee.print('7');
   }
   else if (c == '8')
   {
@@ -172,23 +160,22 @@ void processCommand(char c)
   else if (c == '9')
   {
      driveBackSlightRight();
-     XBee.print('9');  
   }     
   else if (c == 'R')
   {
      regSpeed();
-     XBee.print('R');
   }
   else if (c == 'T')
   {
      turboSpeed();
-     XBee.print('T');
   }
   else if (c == 'S')
   {
      slowSpeed();
-     XBee.print('S');                    
   }
+
+  // Ack the command
+  XBee.print(c);
 }
 
 /**************************************************************************************
