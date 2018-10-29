@@ -101,6 +101,20 @@ void setup()
   stopDriving();
 }  //  end of setup
 
+void driveForwardWithPause()
+{
+  stopDriving();
+  delay(250);
+  driveForward();
+}
+
+void driveBackWithPause()
+{
+  stopDriving();
+  delay(250);
+  driveBack();
+}
+
 /**************************************************************************************
  * Function:  processForward
  */
@@ -112,9 +126,7 @@ void processForward()
      }
      else 
      {
-        stopDriving();
-        delay(250);
-        driveForward();
+        driveForwardWithPause();
      }
   
 }
@@ -166,9 +178,7 @@ void processBack()
       }
       else 
       {
-         stopDriving();
-         delay(250);
-         driveBack();
+         driveBackWithPause();
       }
 }
 
