@@ -50,17 +50,10 @@ void setup()
 }  //  end of setup
 
 /**************************************************************************************
- * Function:  processCommand
+ * Function:  processForward
  */
-void processCommand(char c)
+void processForward()
 {
-  if (c == '1')
-  {
-     driveForwardSlightLeft();
-     XBee.print('1');
-  }                
-  else if (c == '2')
-  {
      if (drivingForward)
      {
         driveForward();
@@ -73,15 +66,16 @@ void processCommand(char c)
         driveForward();
         XBee.print('2');
      }
-   }
-   else if (c == '3')
-   {
-      driveForwardSlightRight(); 
-      XBee.print('3');  
-   }        
-   else if (c == '4')
-   {
-      if (drivingForward)
+  
+}
+
+
+/**************************************************************************************
+ * Function:  processLeft
+ */
+void processLeft()
+{
+       if (drivingForward)
       {
         driveLeft();
         XBee.print('4');
@@ -91,14 +85,16 @@ void processCommand(char c)
          driveLeftBack(); 
          XBee.print('4');  // This might need to be fixed to deal with forward vs back left commands
       }     
-   }      
-   else if (c == '5')
-   {
-      stopDriving(); 
-      XBee.print('5');    
-   }   
-   else if (c == '6')
-   {
+
+}
+
+
+/**************************************************************************************
+ * Function:  processRight
+ */
+void processRight()
+{
+           
       if (drivingForward)
       {
          driveRight();
@@ -109,14 +105,15 @@ void processCommand(char c)
          driveRightBack(); 
          XBee.print('6');  // This might need to be fixed to deal with forward vs back right commands
       } 
-   }        
-   else if (c == '7')
-   {
-      driveBackSlightLeft();
-      XBee.print('7');
-   }
-   else if (c == '8')
-   {
+
+}
+
+
+/**************************************************************************************
+ * Function:  processBack
+ */
+void processBack()
+{
       if (drivingForward==false)
       {
          driveBack();
@@ -129,28 +126,70 @@ void processCommand(char c)
          driveBack();
          XBee.print('8');
       }
-   }
-   else if (c == '9')
-   {
-      driveBackSlightRight();
-      XBee.print('9');  
-   }     
-   else if (c == 'R')
-   {
-      regSpeed();
-      XBee.print('R');
-   }
-   else if (c == 'T')
-   {
-      turboSpeed();
-      XBee.print('T');
-   }
-   else if (c == 'S')
-   {
-      slowSpeed();
-      XBee.print('S');                    
-   }
- }
+}
+
+/**************************************************************************************
+ * Function:  processCommand
+ */
+void processCommand(char c)
+{
+  if (c == '1')
+  {
+     driveForwardSlightLeft();
+     XBee.print('1');
+  }                
+  else if (c == '2')
+  {
+     processForward();
+  }
+  else if (c == '3')
+  {
+     driveForwardSlightRight(); 
+     XBee.print('3');  
+  }        
+  else if (c == '4')
+  {
+     processLeft();
+  }      
+  else if (c == '5')
+  {
+     stopDriving(); 
+     XBee.print('5');    
+  }   
+  else if (c == '6')
+  {
+     processRight();
+  }        
+  else if (c == '7')
+  {
+     driveBackSlightLeft();
+     XBee.print('7');
+  }
+  else if (c == '8')
+  {
+     processBack();
+  }
+  else if (c == '9')
+  {
+     driveBackSlightRight();
+     XBee.print('9');  
+  }     
+  else if (c == 'R')
+  {
+     regSpeed();
+     XBee.print('R');
+  }
+  else if (c == 'T')
+  {
+     turboSpeed();
+     XBee.print('T');
+  }
+  else if (c == 'S')
+  {
+     slowSpeed();
+     XBee.print('S');                    
+  }
+}
 
 /**************************************************************************************
  * Function:  loop
