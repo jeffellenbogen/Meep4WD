@@ -39,19 +39,35 @@ typedef enum
   INPUT_BACK_RIGHT,     // '9'
   INPUT_SLOWMO_SPEED,   // 'S'
   INPUT_REGULAR_SPEED,  // 'R'
-  INPUT_TURBO_SPEED     // 'T'
+  INPUT_TURBO_SPEED,    // 'T'
+  NUM_INPUTS
 } inputType;
+
+
+// State machine states
+typedef enum
+{
+  STATE_DRIVING_FORWARD,
+  STATE_DRIVING_BACK,
+  NUM_STATES
+} stateType;
+
+stateType currentState;
 
 // Forward function declarations needed for the function table below.
 void invalidCommand();
 void driveForwardSlightLeft();
-void processForward();
+void driveForward();
+void driveForwardWithPause();
 void driveForwardSlightRight();
-void processLeft();
+void driveLeft();
+void driveLeftBack();
 void stopDriving();
-void processRight();
+void driveRight();
+void driveRightBack();
 void driveBackSlightLeft();
-void processBack();
+void driveBack();
+void driveBackWithPause();
 void driveBackSlightRight();
 void slowSpeed();
 void regSpeed();
@@ -60,26 +76,26 @@ void turboSpeed();
 // The state machine table itself.  Functions map, in order, to the 
 // input definitions above.
 typedef void (*functionType)();
-functionType functionTable[]  =
-{
-  invalidCommand,             // INPUT_INVALID
-  driveForwardSlightLeft,     // INPUT_FWD_LEFT
-  processForward,             // INPUT_FWD
-  driveForwardSlightRight,    // INPUT_FWD_RIGHT
-  processLeft,                // INPUT_LEFT
-  stopDriving,                // INPUT_STOP
-  processRight,               // INPUT_RIGHT
-  driveBackSlightLeft,        // INPUT_BACK_LEFT
-  processBack,                // INPUT_BACK
-  driveBackSlightRight,       // INPUT_BACK_RIGHT
-  slowSpeed,                  // INPUT_SLOWMO_SPEED
-  regSpeed,                   // INPUT_REGULAR_SPEED
-  turboSpeed                  // INPUT_TURBO_SPEED
+functionType stateMachineTable[NUM_INPUTS][NUM_STATES]  =
+{ 
+  // STATE_DRIVING_FORWARD    STATE_DRIVING_BACK 
+  {invalidCommand,            invalidCommand},          // INPUT_INVALID
+  {driveForwardSlightLeft,    driveForwardSlightLeft},  // INPUT_FWD_LEFT
+  {driveForward,              driveForwardWithPause},   // INPUT_FWD
+  {driveForwardSlightRight,   driveForwardSlightRight}, // INPUT_FWD_RIGHT
+  {driveLeft,                 driveLeftBack},           // INPUT_LEFT
+  {stopDriving,               stopDriving},             // INPUT_STOP
+  {driveRight,                driveRightBack},          // INPUT_RIGHT
+  {driveBackSlightLeft,       driveBackSlightLeft},     // INPUT_BACK_LEFT
+  {driveBackWithPause,        driveBack},               // INPUT_BACK
+  {driveBackSlightRight,      driveBackSlightRight},    // INPUT_BACK_RIGHT
+  {slowSpeed,                 slowSpeed},               // INPUT_SLOWMO_SPEED
+  {regSpeed,                  regSpeed},                // INPUT_REGULAR_SPEED
+  {turboSpeed,                turboSpeed}               // INPUT_TURBO_SPEED
 };
 
 Servo servo1;
 int currentSpeed = 100;
-bool drivingForward;
 
 /**************************************************************************************
  * Function:  setup
@@ -99,8 +115,16 @@ void setup()
   pinMode(headlight_pin_left,OUTPUT);
   pinMode(headlight_pin_right,OUTPUT);  
   stopDriving();
+
+  // if the first thing the meep receives is a left or right, we
+  // want to go forward.
+  currentState = STATE_DRIVING_FORWARD;
+  
 }  //  end of setup
 
+/**************************************************************************************
+ * Function:  driveForwardWithPause
+ */
 void driveForwardWithPause()
 {
   stopDriving();
@@ -108,6 +132,9 @@ void driveForwardWithPause()
   driveForward();
 }
 
+/**************************************************************************************
+ * Function:  driveBackWithPause
+ */
 void driveBackWithPause()
 {
   stopDriving();
@@ -116,75 +143,11 @@ void driveBackWithPause()
 }
 
 /**************************************************************************************
- * Function:  processForward
+ * Function:  invalidCommand
  */
-void processForward()
-{
-     if (drivingForward)
-     {
-        driveForward();
-     }
-     else 
-     {
-        driveForwardWithPause();
-     }
-  
-}
-
-
-/**************************************************************************************
- * Function:  processLeft
- */
-void processLeft()
-{
-       if (drivingForward)
-      {
-        driveLeft();
-      }
-      else
-      {
-         driveLeftBack(); 
-      }     
-
-}
-
-
-/**************************************************************************************
- * Function:  processRight
- */
-void processRight()
-{
-           
-      if (drivingForward)
-      {
-         driveRight();
-      }
-      else
-      {
-         driveRightBack(); 
-      } 
-
-}
-
-
-/**************************************************************************************
- * Function:  processBack
- */
-void processBack()
-{
-      if (drivingForward==false)
-      {
-         driveBack();
-      }
-      else 
-      {
-         driveBackWithPause();
-      }
-}
-
 void invalidCommand()
 {
-  /* do nothing */
+  /* do nothing.  Error message printed by mapCommandToInput */
 }
 
 /**************************************************************************************
@@ -235,7 +198,7 @@ void processCommand(char c)
 
   input = mapCommandToInput(c);
   
-  functionTable[input]();
+  stateMachineTable[input][currentState]();
   
   // Ack the command
   XBee.print(c);
@@ -274,7 +237,7 @@ void stopDriving()
  */
 void driveForward()
 {
-  drivingForward = true;
+  currentState=STATE_DRIVING_FORWARD;
   headlightsOn();
   servo1.write(heading_baseline);
   frontMotor->run(FORWARD);
@@ -287,7 +250,7 @@ void driveForward()
  */
 void driveBack()
 {
-  drivingForward = false;
+  currentState = STATE_DRIVING_BACK;
   headlightsOn();
   servo1.write(heading_baseline);
   frontMotor->run(BACKWARD);
@@ -300,7 +263,9 @@ void driveBack()
  */
 void driveLeft()
 {
-  drivingForward = true;
+  // No state change needed here?  This function only called when we were already going forward?
+  //drivingForward = true; 
+  
   headlightsLeftBlinker();
   servo1.write(heading_baseline-large_turn_amt);
   frontMotor->run(FORWARD);
@@ -316,7 +281,9 @@ void driveLeft()
  */
 void driveRight()
 {
-  drivingForward = true;
+  // No state change needed here?  This function only called when we were already going forward?
+  //drivingForward = true;
+  
   headlightsRightBlinker();
   servo1.write(heading_baseline+large_turn_amt);
   frontMotor->run(FORWARD);
@@ -332,7 +299,9 @@ void driveRight()
  */
 void driveLeftBack()
 {
-  drivingForward = false;
+  // No state change needed here?  This function only called when we were already going back?
+  // drivingForward = false;
+  
   headlightsLeftBlinker();
   servo1.write(heading_baseline-large_turn_amt);
   frontMotor->run(BACKWARD);
@@ -348,7 +317,9 @@ void driveLeftBack()
  */
 void driveRightBack()
 {
-  drivingForward = false;
+  // No state change needed here?  This function only called when we were already going back?
+  // drivingForward = false;
+  
   headlightsRightBlinker();
   servo1.write(heading_baseline+large_turn_amt);
   frontMotor->run(BACKWARD);
@@ -364,7 +335,7 @@ void driveRightBack()
  */
 void driveForwardSlightLeft()
 {
-  drivingForward = true;
+  currentState = STATE_DRIVING_FORWARD;
   headlightsLeftBlinker();
   servo1.write(heading_baseline-small_turn_amt);
   frontMotor->run(FORWARD);
@@ -377,7 +348,7 @@ void driveForwardSlightLeft()
  */
 void driveForwardSlightRight()
 {
-  drivingForward = true;
+  currentState = STATE_DRIVING_FORWARD;
   headlightsRightBlinker();
   servo1.write(heading_baseline+small_turn_amt);
   frontMotor->run(FORWARD);
@@ -390,7 +361,7 @@ void driveForwardSlightRight()
  */
 void driveBackSlightRight()
 {
-  drivingForward = false;
+  currentState = STATE_DRIVING_BACK;
   headlightsRightBlinker();
   servo1.write(heading_baseline+small_turn_amt);
   frontMotor->run(BACKWARD);
@@ -403,7 +374,7 @@ void driveBackSlightRight()
  */
 void driveBackSlightLeft()
 {
-  drivingForward = false;
+  currentState = STATE_DRIVING_BACK;
   headlightsLeftBlinker();
   servo1.write(heading_baseline-small_turn_amt);
   frontMotor->run(BACKWARD);
