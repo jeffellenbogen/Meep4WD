@@ -9,6 +9,7 @@ SoftwareSerial XBee(2, 3); // Arduino RX, TX (XBee Dout, Din)
 #include "utility/Adafruit_MS_PWMServoDriver.h"
 #include <Servo.h> 
 
+#include "intQueue.h"  // input queue used for state machine operations.
 
 #define headlight_pin_left 12
 #define headlight_pin_right 13
@@ -43,6 +44,7 @@ typedef enum
   NUM_INPUTS
 } inputType;
 
+intQueue inputQ;
 
 // State machine states
 typedef enum
@@ -194,13 +196,17 @@ inputType mapCommandToInput( char command )
  */
 void processCommand(char c)
 {
-  inputType input;
+  int input;
 
   input = mapCommandToInput(c);
-  
-  stateMachineTable[input][currentState]();
+
+  inputQ.put(&input);
   
   // Ack the command
+  // Note:  yes, we're now acking this before we actually act on the command.
+  // We *could* move this back into the appropriate processing functions, but
+  // the purpose of the Ack is really to show that the command wasn't dropped.
+  // Can revisit later if need be.
   XBee.print(c);
 }
 
@@ -210,12 +216,20 @@ void processCommand(char c)
 void loop() 
 {
   char command;
+  int  input;
   
   if (XBee.available())
   {
     command = XBee.read();
 
     processCommand(command);
+  }
+
+  // process any inputs for our state machine
+  while (inputQ.numElements())
+  {
+    inputQ.get(&input);
+    stateMachineTable[input][currentState]();
   }
 
 }  // end of loop
