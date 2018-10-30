@@ -16,6 +16,11 @@ SoftwareSerial XBee(2, 3); // Arduino RX, TX (XBee Dout, Din)
 #define heading_baseline 132
 #define small_turn_amt 6
 #define large_turn_amt 13
+#define TURN_SLIGHT_LEFT  (heading_baseline-small_turn_amt)
+#define TURN_HARD_LEFT    (heading_baseline-large_turn_amt)
+#define TURN_SLIGHT_RIGHT (heading_baseline+small_turn_amt)
+#define TURN_HARD_RIGHT   (heading_baseline+large_turn_amt)
+#define TURN_STRAIGHT      heading_baseline
 
 // Create the motor shield object with the default I2C address
 Adafruit_MotorShield AFMS = Adafruit_MotorShield(); 
@@ -24,6 +29,9 @@ Adafruit_MotorShield AFMS = Adafruit_MotorShield();
 Adafruit_DCMotor *frontMotor = AFMS.getMotor(1);
 Adafruit_DCMotor *backLeftMotor = AFMS.getMotor(3);
 Adafruit_DCMotor *backRightMotor = AFMS.getMotor(4);
+
+//  Delay, in ms, for forward->back and back->forward transitions.
+#define PAUSE_TIME 250 
 
 // State machine inputs.
 typedef enum
@@ -56,26 +64,26 @@ typedef enum
 stateType currentState;
 
 // Forward function declarations needed for the function table below.
-void invalidCommand();
-void driveForward();
-void driveForwardWithPause();
-void driveBack();
-void driveBackWithPause();
-void stopDriving();
-void driveHardLeftForward();
-void driveHardLeftBack();
-void driveHardRightForward();
-void driveHardRightBack();
-void turnSlightLeft();
-void turnSlightRight();
-void turnStraight();
-void slowSpeed();
-void regSpeed();
-void turboSpeed();
+stateType invalidCommand();
+stateType driveForward();
+stateType driveForwardWithPause();
+stateType driveBack();
+stateType driveBackWithPause();
+stateType stopDriving();
+stateType driveHardLeftForward();
+stateType driveHardLeftBack();
+stateType driveHardRightForward();
+stateType driveHardRightBack();
+stateType turnSlightLeft();
+stateType turnSlightRight();
+stateType turnStraight();
+stateType slowSpeed();
+stateType regSpeed();
+stateType turboSpeed();
 
 // The state machine table itself.  Functions map, in order, to the 
 // input definitions above.
-typedef void (*functionType)();
+typedef stateType (*functionType)();
 functionType stateMachineTable[NUM_INPUTS][NUM_STATES]  =
 { 
   // STATE_DRIVING_FORWARD    STATE_DRIVING_BACK 
@@ -95,6 +103,174 @@ functionType stateMachineTable[NUM_INPUTS][NUM_STATES]  =
 
 Servo servo1;
 int currentSpeed = 100;
+
+
+/**************************************************************************************
+ * STATE MACHINE Function:  invalidCommand
+ */
+stateType invalidCommand()
+{
+  /* do nothing.  Error message printed by processCommand */
+}
+
+
+/**************************************************************************************
+ * STATE MACHINE Function:  driveForward
+ */
+stateType driveForward()
+{
+  runMotors(FORWARD);
+  return STATE_DRIVING_FORWARD;
+  
+} // end of driveForward
+
+/**************************************************************************************
+ * STATE MACHINE Function:  driveBack
+ */
+stateType driveBack()
+{
+  runMotors(BACKWARD);
+  return STATE_DRIVING_BACK;
+  
+} // end of driveForward
+/**************************************************************************************
+ * STATE MACHINE Function:  stopDriving
+ */
+stateType stopDriving()
+{
+  runMotors(RELEASE);
+  return currentState;
+      
+}  //  end of stopDriving
+
+/**************************************************************************************
+ * STATE MACHINE Function:  driveForwardWithPause
+ */
+stateType driveForwardWithPause()
+{
+  runMotors(RELEASE);
+  delay(PAUSE_TIME);
+  runMotors(FORWARD);
+
+  return STATE_DRIVING_FORWARD;
+}
+
+/**************************************************************************************
+ * STATE MACHINE Function:  driveBackWithPause
+ */
+stateType driveBackWithPause()
+{
+  runMotors(RELEASE);
+  delay(PAUSE_TIME);
+  runMotors(BACKWARD);
+
+  return STATE_DRIVING_BACK;
+}
+
+/**************************************************************************************
+ * STATE MACHINE Function:  driveHardLeftForward
+ */
+stateType driveHardLeftForward()
+{
+  servo1.write(TURN_HARD_LEFT);
+  runMotors(FORWARD);
+
+  return STATE_DRIVING_FORWARD;
+}
+
+/**************************************************************************************
+ * STATE MACHINE Function:  driveHardLeftBack
+ */
+stateType driveHardLeftBack()
+{
+  servo1.write(TURN_HARD_LEFT);
+  runMotors(BACKWARD);
+
+  return STATE_DRIVING_BACK;
+}
+
+/**************************************************************************************
+ * STATE MACHINE Function:  driveHardRightForward
+ */
+stateType driveHardRightForward()
+{
+  servo1.write(TURN_HARD_RIGHT);
+  runMotors(FORWARD);
+
+  return STATE_DRIVING_FORWARD;
+}
+
+/**************************************************************************************
+ * STATE MACHINE Function:  driveHardLeftBack
+ */
+stateType driveHardRightBack()
+{
+  servo1.write(TURN_HARD_RIGHT);
+  runMotors(BACKWARD);
+
+  return STATE_DRIVING_BACK;
+}
+
+/**************************************************************************************
+ * STATE MACHINE Function:  turnSlightLeft()
+ */
+stateType turnSlightLeft()
+{
+  servo1.write(TURN_SLIGHT_LEFT);
+  return currentState;
+}
+
+/**************************************************************************************
+ * STATE MACHINE Function:  turnSlightRight()
+ */
+stateType turnSlightRight()
+{
+  servo1.write(TURN_SLIGHT_RIGHT);
+  return currentState;
+}
+
+
+/**************************************************************************************
+ * STATE MACHINE Function:  turnStraight()
+ */
+stateType turnStraight()
+{
+  servo1.write(TURN_STRAIGHT);
+  return currentState;
+}
+
+/**************************************************************************************
+ * STATE MACHINE Function:  regSpeed
+ */
+stateType regSpeed()
+{
+  currentSpeed = 100;
+  setCurrentSpeed();
+
+  return currentState;
+}
+
+/**************************************************************************************
+ * STATE MACHINE Function:  turboSpeed
+ */
+stateType turboSpeed()
+{
+  currentSpeed = 255;
+  setCurrentSpeed();
+
+  return currentState;
+}
+
+/**************************************************************************************
+ * STATE MACHINE Function:  slowSpeed
+ */
+stateType slowSpeed()
+{
+  currentSpeed = 50;
+  setCurrentSpeed();
+
+  return currentState;
+}
 
 /**************************************************************************************
  * Function:  setup
@@ -121,69 +297,7 @@ void setup()
   
 }  //  end of setup
 
-/**************************************************************************************
- * Function:  driveForwardWithPause
- */
-void driveForwardWithPause()
-{
-  stopDriving();
-  delay(250);
-  driveForward();
-}
 
-/**************************************************************************************
- * Function:  driveBackWithPause
- */
-void driveBackWithPause()
-{
-  stopDriving();
-  delay(250);
-  driveBack();
-}
-
-/**************************************************************************************
- * Function:  driveHardLeftForward
- */
-void driveHardLeftForward()
-{
-  turnHardLeft();
-  driveForward();
-}
-
-/**************************************************************************************
- * Function:  driveHardLeftBack
- */
-void driveHardLeftBack()
-{
-  turnHardLeft();
-  driveBack();
-}
-
-/**************************************************************************************
- * Function:  driveHardRightForward
- */
-void driveHardRightForward()
-{
-  turnHardRight();
-  driveForward();
-}
-
-/**************************************************************************************
- * Function:  driveHardLeftBack
- */
-void driveHardRightBack()
-{
-  turnHardRight();
-  driveBack();
-}
-
-/**************************************************************************************
- * Function:  invalidCommand
- */
-void invalidCommand()
-{
-  /* do nothing.  Error message printed by processCommand */
-}
 
 /**************************************************************************************
  * Function:  processCommand
@@ -280,109 +394,20 @@ void loop()
   while (inputQ.numElements())
   {
     inputQ.get(&input);
-    stateMachineTable[input][currentState]();
+    currentState = stateMachineTable[input][currentState]();
   }
 
 }  // end of loop
 
 /**************************************************************************************
- * Function:  stopDriving
+ * Function:  runMotors
  */
-void stopDriving()
+void runMotors(int dir)
 {
-  frontMotor->run(RELEASE);
-  backLeftMotor->run(RELEASE);
-  backRightMotor->run(RELEASE);
-}  //  end of stopDriving
-
-/**************************************************************************************
- * Function:  driveForward
- */
-void driveForward()
-{
-  currentState=STATE_DRIVING_FORWARD;
-  frontMotor->run(FORWARD);
-  backLeftMotor->run(FORWARD);
-  backRightMotor->run(FORWARD);
+  frontMotor->run(dir);
+  backLeftMotor->run(dir);
+  backRightMotor->run(dir);
 } // end of driveForward
-
-/**************************************************************************************
- * Function:  driveBack
- */
-void driveBack()
-{
-  currentState = STATE_DRIVING_BACK;
-  frontMotor->run(BACKWARD);
-  backLeftMotor->run(BACKWARD);
-  backRightMotor->run(BACKWARD);
-}  // end of driveBack
-
-/**************************************************************************************
- * Function:  turnHardLeft
- */
-void turnHardLeft()
-{
-  servo1.write(heading_baseline-large_turn_amt);
-}  // end of turnHardLeft
-
-/**************************************************************************************
- * Function:  turnHardRight
- */
-void turnHardRight()
-{
-  servo1.write(heading_baseline+large_turn_amt);
-}  // end of turnHardRight
-
-/**************************************************************************************
- * Function:  turnSlightLeft
- */
-void turnSlightLeft()
-{
-  servo1.write(heading_baseline-small_turn_amt);
-}  // end of turnSlightLeft
-
-/**************************************************************************************
- * Function:  turnSlightRight
- */
-void turnSlightRight()
-{
-  servo1.write(heading_baseline+small_turn_amt);
-}  // end of turnSlightRight
-
-/**************************************************************************************
- * Function:  turnStraight
- */
-void turnStraight()
-{
-  servo1.write(heading_baseline);
-}  // end of turnStraight
-
-/**************************************************************************************
- * Function:  regSpeed
- */
-void regSpeed()
-{
-  currentSpeed = 100;
-  setCurrentSpeed();
-}
-
-/**************************************************************************************
- * Function:  turboSpeed
- */
-void turboSpeed()
-{
-  currentSpeed = 255;
-  setCurrentSpeed();
-}
-
-/**************************************************************************************
- * Function:  slowSpeed
- */
-void slowSpeed()
-{
-  currentSpeed = 50;
-  setCurrentSpeed();
-}
 
 /**************************************************************************************
  * Function:  setCurrentSpeed
