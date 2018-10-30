@@ -10,6 +10,7 @@ SoftwareSerial XBee(2, 3); // Arduino RX, TX (XBee Dout, Din)
 #include <Servo.h> 
 
 #include "intQueue.h"  // input queue used for state machine operations.
+#include "timer_cb.h"  // timer callback library.
 
 #define headlight_pin_left 12
 #define headlight_pin_right 13
@@ -47,7 +48,8 @@ typedef enum
   INPUT_TURN_STRAIGHT,
   INPUT_SLOWMO_SPEED,   
   INPUT_REGULAR_SPEED,  
-  INPUT_TURBO_SPEED,    
+  INPUT_TURBO_SPEED,
+  INPUT_TIMER_EXPIRED,    
   NUM_INPUTS
 } inputType;
 
@@ -58,6 +60,8 @@ typedef enum
 {
   STATE_DRIVING_FORWARD,
   STATE_DRIVING_BACK,
+  STATE_PAUSE_FORWARD,
+  STATE_PAUSE_BACK,
   NUM_STATES
 } stateType;
 
@@ -66,44 +70,62 @@ stateType currentState;
 // Forward function declarations needed for the function table below.
 stateType invalidCommand();
 stateType driveForward();
-stateType driveForwardWithPause();
 stateType driveBack();
-stateType driveBackWithPause();
+stateType startBackPause();
+stateType startForwardPause();
+stateType rememberGo();
 stateType stopDriving();
+stateType rememberStop();
 stateType driveHardLeftForward();
 stateType driveHardLeftBack();
 stateType driveHardRightForward();
 stateType driveHardRightBack();
 stateType turnSlightLeft();
 stateType turnSlightRight();
+stateType turnHardLeft();
+stateType turnHardRight();
 stateType turnStraight();
 stateType slowSpeed();
 stateType regSpeed();
 stateType turboSpeed();
+stateType ignoreTimer();
+stateType resumeForward();
+stateType resumeBack();
+
 
 // The state machine table itself.  Functions map, in order, to the 
 // input definitions above.
 typedef stateType (*functionType)();
 functionType stateMachineTable[NUM_INPUTS][NUM_STATES]  =
 { 
-  // STATE_DRIVING_FORWARD    STATE_DRIVING_BACK 
-  {invalidCommand,            invalidCommand},          // INPUT_INVALID
-  {driveForward,              driveForwardWithPause},   // INPUT_GO_FORWARD
-  {driveBackWithPause,        driveBack},               // INPUT_GO_BACK
-  {stopDriving,               stopDriving},             // INPUT_STOP
-  {driveHardLeftForward,      driveHardLeftBack},       // INPUT_GO_HARD_LEFT
-  {driveHardRightForward,     driveHardRightBack},      // INPUT_GO_HARD_RIGHT
-  {turnSlightLeft,            turnSlightLeft},          // INPUT_TURN_SLIGHT_LEFT
-  {turnSlightRight,           turnSlightRight},         // INPUT_TURN_SLIGHT_RIGHT
-  {turnStraight,              turnStraight},            // INPUT_TURN_STRAIGHT
-  {slowSpeed,                 slowSpeed},               // INPUT_SLOWMO_SPEED
-  {regSpeed,                  regSpeed},                // INPUT_REGULAR_SPEED
-  {turboSpeed,                turboSpeed}               // INPUT_TURBO_SPEED
+  // STATE_DRIVING_FORWARD    STATE_DRIVING_BACK        STATE_PAUSE_FORWARD          STATE_PAUSE_BACK
+  {invalidCommand,            invalidCommand,           invalidCommand,              invalidCommand},   // INPUT_INVALID
+  {driveForward,              startBackPause,           rememberGo,                  driveForward},     // INPUT_GO_FORWARD
+  {startForwardPause,         driveBack,                driveBack,                   rememberGo},       // INPUT_GO_BACK
+  {stopDriving,               stopDriving,              rememberStop,                rememberStop},     // INPUT_STOP
+  {driveHardLeftForward,      driveHardLeftBack,        turnHardLeft,                turnHardLeft},     // INPUT_GO_HARD_LEFT
+  {driveHardRightForward,     driveHardRightBack,       turnHardRight,               turnHardRight},    // INPUT_GO_HARD_RIGHT
+  {turnSlightLeft,            turnSlightLeft,           turnSlightLeft,              turnSlightLeft},   // INPUT_TURN_SLIGHT_LEFT
+  {turnSlightRight,           turnSlightRight,          turnSlightRight,             turnSlightRight},  // INPUT_TURN_SLIGHT_RIGHT
+  {turnStraight,              turnStraight,             turnStraight,                turnStraight},     // INPUT_TURN_STRAIGHT
+  {slowSpeed,                 slowSpeed,                slowSpeed,                   slowSpeed},        // INPUT_SLOWMO_SPEED
+  {regSpeed,                  regSpeed,                 regSpeed,                    regSpeed},         // INPUT_REGULAR_SPEED
+  {turboSpeed,                turboSpeed,               turboSpeed,                  turboSpeed},       // INPUT_TURBO_SPEED
+  {invalidCommand,            invalidCommand,           resumeForward,               resumeBack}        // INPUT_TIMER_EXPIRED
 };
 
 Servo servo1;
 int currentSpeed = 100;
 
+bool stopInPause=false;
+
+/**************************************************************************************
+ * CALLBACK function:  timerExpiredCB
+ */
+void timerExpiredCB( void )
+{
+  inputQ.put(INPUT_TIMER_EXPIRED);
+}
 
 /**************************************************************************************
  * STATE MACHINE Function:  invalidCommand
@@ -113,12 +135,14 @@ stateType invalidCommand()
   /* do nothing.  Error message printed by processCommand */
 }
 
-
 /**************************************************************************************
  * STATE MACHINE Function:  driveForward
  */
 stateType driveForward()
 {
+
+  // need to clear any outstanding timer here.
+  
   runMotors(FORWARD);
   return STATE_DRIVING_FORWARD;
   
@@ -129,10 +153,14 @@ stateType driveForward()
  */
 stateType driveBack()
 {
+
+  // need to clear any outstanding timer here.
+  
   runMotors(BACKWARD);
   return STATE_DRIVING_BACK;
   
 } // end of driveForward
+
 /**************************************************************************************
  * STATE MACHINE Function:  stopDriving
  */
@@ -144,27 +172,77 @@ stateType stopDriving()
 }  //  end of stopDriving
 
 /**************************************************************************************
- * STATE MACHINE Function:  driveForwardWithPause
+ * STATE MACHINE Function:  rememberStop
  */
-stateType driveForwardWithPause()
+stateType rememberStop()
 {
-  runMotors(RELEASE);
-  delay(PAUSE_TIME);
-  runMotors(FORWARD);
+  // Here is a sample sequence of events:
+  //   1) we were driving forward.
+  //   2) we got a "drive back" command.  This caused us to enter the "pause back" state.
+  //   3) we got a stop command before the timer expired.
+  // In this, we need to remember that we got the stop command, so that when our timer expires, we
+  // *DON'T* go backwards.
+  // Same logic for back->forward transitions.
 
-  return STATE_DRIVING_FORWARD;
+  stopInPause = true;
+  
+  return currentState;
+      
+}  //  end of stopDriving
+/**************************************************************************************
+ * STATE MACHINE Function:  startForwardPause
+ * 
+ */
+stateType startForwardPause()
+{
+
+  runMotors(RELEASE);
+  
+  if (timer_cb_reg(timerExpiredCB, PAUSE_TIME))
+  {
+    // uh oh.  Fatal error.
+    Serial.println("Error initializing callback in startForwardPause");
+  }
+
+  stopInPause = false;
+  
+  return STATE_PAUSE_FORWARD;
 }
 
 /**************************************************************************************
  * STATE MACHINE Function:  driveBackWithPause
  */
-stateType driveBackWithPause()
+stateType startBackPause()
 {
   runMotors(RELEASE);
-  delay(PAUSE_TIME);
-  runMotors(BACKWARD);
 
-  return STATE_DRIVING_BACK;
+  if (timer_cb_reg(timerExpiredCB, PAUSE_TIME))
+  {
+    // uh oh.  Fatal error.
+    Serial.println("Error initializing callback in startBackPause");
+  }
+
+  stopInPause = false;
+  
+  return STATE_PAUSE_BACK;
+}
+
+/**************************************************************************************
+ * STATE MACHINE Function:  rememberGo
+ */
+stateType rememberGo()
+{
+  // Here is a sample sequence of events:
+  //   1) we were driving forward.
+  //   2) we got a "drive back" command.  This caused us to enter the "pause back" state.
+  //   3) we got a stop command before the timer expired.  This caused "rememberStop" to get called, which set the stopInPuase flag.
+  //   4) we got a subsequent "drive back" command
+  // Here we want to actually keep moving backwards once our timer expires.
+  // Same logic for back->forward transitions.
+
+  stopInPause = false;
+  
+  return currentState;
 }
 
 /**************************************************************************************
@@ -239,6 +317,25 @@ stateType turnStraight()
   return currentState;
 }
 
+
+/**************************************************************************************
+ * STATE MACHINE Function:  turnHardLeft()
+ */
+stateType turnHardLeft()
+{
+  servo1.write(TURN_HARD_LEFT);
+  return currentState;
+}
+
+/**************************************************************************************
+ * STATE MACHINE Function:  turnHardRight()
+ */
+stateType turnHardRight()
+{
+  servo1.write(TURN_HARD_RIGHT);
+  return currentState;
+}
+
 /**************************************************************************************
  * STATE MACHINE Function:  regSpeed
  */
@@ -270,6 +367,35 @@ stateType slowSpeed()
   setCurrentSpeed();
 
   return currentState;
+}
+
+
+/**************************************************************************************
+ * STATE MACHINE Function:  resumeForward
+ */
+stateType resumeForward()
+{
+  if (stopInPause == false);
+  {
+    // since we didn't get a stop command when we were waiting, it's okay to fire up the engines.
+    runMotors(FORWARD);  
+  }
+  
+  return STATE_DRIVING_FORWARD;
+}
+
+/**************************************************************************************
+ * STATE MACHINE Function:  resumeBack
+ */
+stateType resumeBack()
+{
+  if (stopInPause == false);
+  {
+    // since we didn't get a stop command when we were waiting, it's okay to fire up the engines.
+    runMotors(BACKWARD);  
+  }
+  
+  return STATE_DRIVING_BACK;
 }
 
 /**************************************************************************************
