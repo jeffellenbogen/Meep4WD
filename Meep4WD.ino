@@ -29,18 +29,17 @@ Adafruit_DCMotor *backRightMotor = AFMS.getMotor(4);
 typedef enum
 {
   INPUT_INVALID,        
-  INPUT_FWD_LEFT,       // '1'
-  INPUT_FWD,            // '2'
-  INPUT_FWD_RIGHT,      // '3'
-  INPUT_LEFT,           // '4'
-  INPUT_STOP,           // '5'
-  INPUT_RIGHT,          // '6'
-  INPUT_BACK_LEFT,      // '7'
-  INPUT_BACK,           // '8'
-  INPUT_BACK_RIGHT,     // '9'
-  INPUT_SLOWMO_SPEED,   // 'S'
-  INPUT_REGULAR_SPEED,  // 'R'
-  INPUT_TURBO_SPEED,    // 'T'
+  INPUT_GO_FORWARD,
+  INPUT_GO_BACK,
+  INPUT_STOP,           
+  INPUT_GO_HARD_LEFT,
+  INPUT_GO_HARD_RIGHT,
+  INPUT_TURN_SLIGHT_LEFT,
+  INPUT_TURN_SLIGHT_RIGHT,
+  INPUT_TURN_STRAIGHT,
+  INPUT_SLOWMO_SPEED,   
+  INPUT_REGULAR_SPEED,  
+  INPUT_TURBO_SPEED,    
   NUM_INPUTS
 } inputType;
 
@@ -58,19 +57,18 @@ stateType currentState;
 
 // Forward function declarations needed for the function table below.
 void invalidCommand();
-void driveForwardSlightLeft();
 void driveForward();
 void driveForwardWithPause();
-void driveForwardSlightRight();
-void driveLeft();
-void driveLeftBack();
-void stopDriving();
-void driveRight();
-void driveRightBack();
-void driveBackSlightLeft();
 void driveBack();
 void driveBackWithPause();
-void driveBackSlightRight();
+void stopDriving();
+void driveHardLeftForward();
+void driveHardLeftBack();
+void driveHardRightForward();
+void driveHardRightBack();
+void turnSlightLeft();
+void turnSlightRight();
+void turnStraight();
 void slowSpeed();
 void regSpeed();
 void turboSpeed();
@@ -82,15 +80,14 @@ functionType stateMachineTable[NUM_INPUTS][NUM_STATES]  =
 { 
   // STATE_DRIVING_FORWARD    STATE_DRIVING_BACK 
   {invalidCommand,            invalidCommand},          // INPUT_INVALID
-  {driveForwardSlightLeft,    driveForwardSlightLeft},  // INPUT_FWD_LEFT
-  {driveForward,              driveForwardWithPause},   // INPUT_FWD
-  {driveForwardSlightRight,   driveForwardSlightRight}, // INPUT_FWD_RIGHT
-  {driveLeft,                 driveLeftBack},           // INPUT_LEFT
+  {driveForward,              driveForwardWithPause},   // INPUT_GO_FORWARD
+  {driveBackWithPause,        driveBack},               // INPUT_GO_BACK
   {stopDriving,               stopDriving},             // INPUT_STOP
-  {driveRight,                driveRightBack},          // INPUT_RIGHT
-  {driveBackSlightLeft,       driveBackSlightLeft},     // INPUT_BACK_LEFT
-  {driveBackWithPause,        driveBack},               // INPUT_BACK
-  {driveBackSlightRight,      driveBackSlightRight},    // INPUT_BACK_RIGHT
+  {driveHardLeftForward,      driveHardLeftBack},       // INPUT_GO_HARD_LEFT
+  {driveHardRightForward,     driveHardRightBack},      // INPUT_GO_HARD_RIGHT
+  {turnSlightLeft,            turnSlightLeft},          // INPUT_TURN_SLIGHT_LEFT
+  {turnSlightRight,           turnSlightRight},         // INPUT_TURN_SLIGHT_RIGHT
+  {turnStraight,              turnStraight},            // INPUT_TURN_STRAIGHT
   {slowSpeed,                 slowSpeed},               // INPUT_SLOWMO_SPEED
   {regSpeed,                  regSpeed},                // INPUT_REGULAR_SPEED
   {turboSpeed,                turboSpeed}               // INPUT_TURBO_SPEED
@@ -145,50 +142,47 @@ void driveBackWithPause()
 }
 
 /**************************************************************************************
+ * Function:  driveHardLeftForward
+ */
+void driveHardLeftForward()
+{
+  turnHardLeft();
+  driveForward();
+}
+
+/**************************************************************************************
+ * Function:  driveHardLeftBack
+ */
+void driveHardLeftBack()
+{
+  turnHardLeft();
+  driveBack();
+}
+
+/**************************************************************************************
+ * Function:  driveHardRightForward
+ */
+void driveHardRightForward()
+{
+  turnHardRight();
+  driveForward();
+}
+
+/**************************************************************************************
+ * Function:  driveHardLeftBack
+ */
+void driveHardRightBack()
+{
+  turnHardRight();
+  driveBack();
+}
+
+/**************************************************************************************
  * Function:  invalidCommand
  */
 void invalidCommand()
 {
-  /* do nothing.  Error message printed by mapCommandToInput */
-}
-
-/**************************************************************************************
- * Function:  mapCommandToInput
- */
-inputType mapCommandToInput( char command )
-{
-  inputType retVal;
-  
-  // number characters are easy to map...do a char to int converstion.
-  if ((command >= '1') && (command <= '9'))
-  {
-    retVal = (inputType) (command - '0');
-  }
-  else
-  {
-    // Three other inputs we need to process are the speed inputs
-    switch (command)
-    {
-      case 'S':
-        retVal = INPUT_SLOWMO_SPEED;
-      break;
-
-      case 'R':
-        retVal = INPUT_REGULAR_SPEED;
-      break;
-
-      case 'T':
-        retVal = INPUT_TURBO_SPEED;
-      break;
-
-      default:
-        Serial.print("Invalid command received: ");
-        Serial.println(command);
-        retVal = INPUT_INVALID;
-    }
-  }
-
-  return retVal;
+  /* do nothing.  Error message printed by processCommand */
 }
 
 /**************************************************************************************
@@ -198,9 +192,66 @@ void processCommand(char c)
 {
   int input;
 
-  input = mapCommandToInput(c);
+  switch (c)
+  {
+    case '1':
+      inputQ.put(INPUT_TURN_SLIGHT_LEFT);
+      inputQ.put(INPUT_GO_FORWARD);
+    break;
 
-  inputQ.put(&input);
+    case '2':
+      inputQ.put(INPUT_TURN_STRAIGHT);
+      inputQ.put(INPUT_GO_FORWARD);
+    break;
+
+    case '3':
+      inputQ.put(INPUT_TURN_SLIGHT_LEFT);
+      inputQ.put(INPUT_GO_FORWARD);
+    break;
+
+    case '4':
+      inputQ.put(INPUT_GO_HARD_LEFT);
+    break;
+
+    case '5':
+      inputQ.put(INPUT_STOP);
+    break;
+
+    case '6':
+      inputQ.put(INPUT_GO_HARD_RIGHT);
+    break;
+
+    case '7':
+      inputQ.put(INPUT_TURN_SLIGHT_LEFT);
+      inputQ.put(INPUT_GO_BACK);
+    break;
+
+    case '8':
+      inputQ.put(INPUT_TURN_STRAIGHT);
+      inputQ.put(INPUT_GO_BACK);
+    break;
+
+    case '9':
+      inputQ.put(INPUT_TURN_SLIGHT_RIGHT);
+      inputQ.put(INPUT_GO_BACK);
+    break;
+
+    case 'S':
+      inputQ.put(INPUT_SLOWMO_SPEED);
+    break;
+
+    case 'R':
+      inputQ.put(INPUT_REGULAR_SPEED);
+    break;
+
+    case 'T':
+      inputQ.put(INPUT_TURBO_SPEED);
+    break;
+
+    default:
+      Serial.print("Received unknown command from Joystick: ");
+      Serial.println(c);
+  }
   
   // Ack the command
   // Note:  yes, we're now acking this before we actually act on the command.
@@ -239,8 +290,6 @@ void loop()
  */
 void stopDriving()
 {
-  headlightsOff();
-  servo1.write(heading_baseline);
   frontMotor->run(RELEASE);
   backLeftMotor->run(RELEASE);
   backRightMotor->run(RELEASE);
@@ -252,8 +301,6 @@ void stopDriving()
 void driveForward()
 {
   currentState=STATE_DRIVING_FORWARD;
-  headlightsOn();
-  servo1.write(heading_baseline);
   frontMotor->run(FORWARD);
   backLeftMotor->run(FORWARD);
   backRightMotor->run(FORWARD);
@@ -265,136 +312,50 @@ void driveForward()
 void driveBack()
 {
   currentState = STATE_DRIVING_BACK;
-  headlightsOn();
-  servo1.write(heading_baseline);
   frontMotor->run(BACKWARD);
   backLeftMotor->run(BACKWARD);
   backRightMotor->run(BACKWARD);
 }  // end of driveBack
 
 /**************************************************************************************
- * Function:  driveLeft
+ * Function:  turnHardLeft
  */
-void driveLeft()
+void turnHardLeft()
 {
-  // No state change needed here?  This function only called when we were already going forward?
-  //drivingForward = true; 
-  
-  headlightsLeftBlinker();
   servo1.write(heading_baseline-large_turn_amt);
-  frontMotor->run(FORWARD);
-  backLeftMotor->run(FORWARD);
-  backRightMotor->run(FORWARD);
-  delay(50);
-  headlightsOff();
-  delay(50);
-}  // end of driveLeft
+}  // end of turnHardLeft
 
 /**************************************************************************************
- * Function:  driveRight
+ * Function:  turnHardRight
  */
-void driveRight()
+void turnHardRight()
 {
-  // No state change needed here?  This function only called when we were already going forward?
-  //drivingForward = true;
-  
-  headlightsRightBlinker();
   servo1.write(heading_baseline+large_turn_amt);
-  frontMotor->run(FORWARD);
-  backLeftMotor->run(FORWARD);
-  backRightMotor->run(FORWARD);
-  delay(50);
-  headlightsOff();
-  delay(50);
-}  // end of driveRight
+}  // end of turnHardRight
 
 /**************************************************************************************
- * Function:  driveLeftBack
+ * Function:  turnSlightLeft
  */
-void driveLeftBack()
+void turnSlightLeft()
 {
-  // No state change needed here?  This function only called when we were already going back?
-  // drivingForward = false;
-  
-  headlightsLeftBlinker();
-  servo1.write(heading_baseline-large_turn_amt);
-  frontMotor->run(BACKWARD);
-  backLeftMotor->run(BACKWARD);
-  backRightMotor->run(BACKWARD);
-  delay(50);
-  headlightsOff();
-  delay(50);
-}  // end of driveLeftBack
-
-/**************************************************************************************
- * Function:  driveRightBack
- */
-void driveRightBack()
-{
-  // No state change needed here?  This function only called when we were already going back?
-  // drivingForward = false;
-  
-  headlightsRightBlinker();
-  servo1.write(heading_baseline+large_turn_amt);
-  frontMotor->run(BACKWARD);
-  backLeftMotor->run(BACKWARD);
-  backRightMotor->run(BACKWARD);
-  delay(50);
-  headlightsOff();
-  delay(50);
-}  // end of driveRightBack
-
-/**************************************************************************************
- * Function:  driveForwardSlightLeft
- */
-void driveForwardSlightLeft()
-{
-  currentState = STATE_DRIVING_FORWARD;
-  headlightsLeftBlinker();
   servo1.write(heading_baseline-small_turn_amt);
-  frontMotor->run(FORWARD);
-  backLeftMotor->run(FORWARD);
-  backRightMotor->run(FORWARD);
-}  // end of driveForwardSlightLeft
+}  // end of turnSlightLeft
 
 /**************************************************************************************
- * Function:  driveForwardSlightRight
+ * Function:  turnSlightRight
  */
-void driveForwardSlightRight()
+void turnSlightRight()
 {
-  currentState = STATE_DRIVING_FORWARD;
-  headlightsRightBlinker();
   servo1.write(heading_baseline+small_turn_amt);
-  frontMotor->run(FORWARD);
-  backLeftMotor->run(FORWARD);
-  backRightMotor->run(FORWARD);
-}  // end of driveForwardSlightRight
+}  // end of turnSlightRight
 
 /**************************************************************************************
- * Function:  driveBackSlightRight
+ * Function:  turnStraight
  */
-void driveBackSlightRight()
+void turnStraight()
 {
-  currentState = STATE_DRIVING_BACK;
-  headlightsRightBlinker();
-  servo1.write(heading_baseline+small_turn_amt);
-  frontMotor->run(BACKWARD);
-  backLeftMotor->run(BACKWARD);
-  backRightMotor->run(BACKWARD);
-}  // end of driveBackSlightRight
-
-/**************************************************************************************
- * Function:  driveBackSlightLeft
- */
-void driveBackSlightLeft()
-{
-  currentState = STATE_DRIVING_BACK;
-  headlightsLeftBlinker();
-  servo1.write(heading_baseline-small_turn_amt);
-  frontMotor->run(BACKWARD);
-  backLeftMotor->run(BACKWARD);
-  backRightMotor->run(BACKWARD);
-}  // end of driveBackSlightLeft
+  servo1.write(heading_baseline);
+}  // end of turnStraight
 
 /**************************************************************************************
  * Function:  regSpeed
@@ -432,40 +393,4 @@ void setCurrentSpeed()
   backLeftMotor->setSpeed(currentSpeed);
   backRightMotor->setSpeed(currentSpeed);
 
-}
-
-/**************************************************************************************
- * Function:  headlightsOn
- */
-void headlightsOn()
-{
-  digitalWrite(headlight_pin_left,HIGH);
-  digitalWrite(headlight_pin_right,HIGH);
-}
-
-/**************************************************************************************
- * Function:  headlightsOff
- */
-void headlightsOff()
-{
-  digitalWrite(headlight_pin_left,LOW);
-  digitalWrite(headlight_pin_right,LOW); 
-}
-
-/**************************************************************************************
- * Function:  headlightsLeftBlinker
- */
-void headlightsLeftBlinker()
-{
-   digitalWrite(headlight_pin_left,HIGH);
-   digitalWrite(headlight_pin_right,LOW); 
-}
-
-/**************************************************************************************
- * Function:  headlightsRightBlinker
- */
-void headlightsRightBlinker()
-{
-   digitalWrite(headlight_pin_left,LOW);
-   digitalWrite(headlight_pin_right,HIGH); 
 }
