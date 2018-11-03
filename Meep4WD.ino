@@ -29,6 +29,11 @@ Servo servo1;
 int currentSpeed = 100;
 bool drivingForward;
 
+// if the Meep hasn't received anything from the joystick 
+// for a while, then stop driving.
+// Units:  ms
+#define KEEP_ALIVE_TIME 1000
+
 void setup() {
   Serial.begin(9600); // set up Serial library at 9600 bps
   Serial.println("Adafruit Motorshield v2 - DC Motor test!");
@@ -47,17 +52,28 @@ void setup() {
 
 }
 
-void loop() {
- if (XBee.available())
-     {
-     char c = XBee.read();
+void loop() 
+{
+  static unsigned long last_rx_char_time=0;
+  unsigned long        current_time;
+  static bool          stopped=true;
+  
+  if (XBee.available())
+  {
+        char c = XBee.read();
+
+        last_rx_char_time = millis();
+        
         if (c == '1')
         {
+          stopped=false;
           driveForwardSlightLeft();
           XBee.print('1');
         }                
         else if (c == '2')
         {
+          stopped = false;
+          
           if (drivingForward)
           {
              driveForward();
@@ -73,11 +89,13 @@ void loop() {
          }
          else if (c == '3')
          {
+            stopped = false;
             driveForwardSlightRight(); 
             XBee.print('3');  
          }        
          else if (c == '4')
          {
+            stopped = false;
             if (drivingForward)
             {
               driveLeft();
@@ -91,11 +109,13 @@ void loop() {
          }      
          else if (c == '5')
          {
+            stopped = true;
             stopDriving(); 
             XBee.print('5');    
          }   
          else if (c == '6')
          {
+            stopped = false;
             if (drivingForward)
             {
               driveRight();
@@ -109,11 +129,13 @@ void loop() {
          }        
          else if (c == '7')
          {
+            stopped = false;
             driveBackSlightLeft();
             XBee.print('7');
          }
          else if (c == '8')
          {
+            stopped = false;
             if (drivingForward==false)
             {
               driveBack();
@@ -129,6 +151,7 @@ void loop() {
           }
           else if (c == '9')
           {
+            stopped = false;
             driveBackSlightRight();
             XBee.print('9');  
           }     
@@ -147,7 +170,17 @@ void loop() {
             slowSpeed();
             XBee.print('S');                    
          }
-     }
+   }  // end if character available
+
+   // if we haven't received anything from the Joystick in a while, 
+   // it's likely we've lost contact.  We should stop.
+   current_time = millis();
+   if ((stopped == false) && (current_time > last_rx_char_time + KEEP_ALIVE_TIME))
+   {
+     stopped = true;
+     stopDriving();
+     Serial.println("Lost contact w/Joystick.  Stopping");
+   }
 }
 
 void stopDriving(){
@@ -303,8 +336,3 @@ void headlightsRightBlinker(){
    digitalWrite(headlight_pin_left,LOW);
    digitalWrite(headlight_pin_right,HIGH); 
 }
-
-
-
-
-
