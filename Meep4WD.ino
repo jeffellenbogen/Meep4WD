@@ -15,6 +15,7 @@ SoftwareSerial XBee(2, 3); // Arduino RX, TX (XBee Dout, Din)
 #define heading_baseline 132
 #define small_turn_amt 6
 #define large_turn_amt 13
+#define POP_DELAY 150
 
 // Create the motor shield object with the default I2C address
 Adafruit_MotorShield AFMS = Adafruit_MotorShield(); 
@@ -66,7 +67,7 @@ void loop() {
           else 
           {
              stopDriving();
-             delay(250);
+             delay(POP_DELAY);
              driveForward();
              XBee.print('2');
            }
@@ -122,7 +123,7 @@ void loop() {
             else 
             {
               stopDriving();
-              delay(250);
+              delay(POP_DELAY);
               driveBack();
               XBee.print('8');
              }
